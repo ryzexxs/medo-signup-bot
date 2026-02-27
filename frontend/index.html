@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MeDo Automation Bot</title>
+    <title>MeDo Automation</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,144 +16,165 @@
             box-sizing: border-box;
         }
         
+        :root {
+            --bg-primary: #000000;
+            --bg-secondary: #050505;
+            --bg-tertiary: #0a0a0a;
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-medium: rgba(255, 255, 255, 0.1);
+            --text-primary: rgba(255, 255, 255, 0.95);
+            --text-secondary: rgba(255, 255, 255, 0.6);
+            --text-tertiary: rgba(255, 255, 255, 0.4);
+            --accent-success: #10b981;
+            --accent-error: #ef4444;
+            --accent-warning: #f59e0b;
+        }
+
         body {
-            background-color: #000000;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
             overflow-x: hidden;
         }
 
-        /* Animated background blobs */
-        .bg-blob {
+        /* Animated background */
+        .ambient-light {
             position: fixed;
-            border-radius: 50%;
-            filter: blur(80px);
-            opacity: 0.4;
-            animation: float 20s infinite ease-in-out;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
             z-index: -1;
+            pointer-events: none;
         }
-        .blob-1 {
+
+        .ambient-glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.03;
+            animation: ambientFloat 30s infinite ease-in-out;
+        }
+
+        .glow-1 {
+            width: 600px;
+            height: 600px;
+            background: #ffffff;
+            top: -200px;
+            right: -200px;
+        }
+
+        .glow-2 {
             width: 400px;
             height: 400px;
-            background: #1a1a1a;
-            top: -100px;
+            background: #ffffff;
+            bottom: -100px;
             left: -100px;
-            animation-delay: 0s;
-        }
-        .blob-2 {
-            width: 300px;
-            height: 300px;
-            background: #0d0d0d;
-            bottom: -50px;
-            right: -50px;
-            animation-delay: -7s;
-        }
-        .blob-3 {
-            width: 250px;
-            height: 250px;
-            background: #111111;
-            top: 50%;
-            left: 50%;
-            animation-delay: -14s;
+            animation-delay: -15s;
         }
 
-        @keyframes float {
+        @keyframes ambientFloat {
             0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(30px, -50px) scale(1.1); }
-            66% { transform: translate(-20px, 30px) scale(0.9); }
+            25% { transform: translate(50px, 50px) scale(1.05); }
+            50% { transform: translate(-30px, 80px) scale(0.95); }
+            75% { transform: translate(-80px, -50px) scale(1.02); }
         }
 
-        /* Glass morphism card */
-        .glass-card {
-            background: rgba(10, 10, 10, 0.6);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 24px;
+        /* Glass card */
+        .glass-panel {
+            background: linear-gradient(
+                135deg,
+                rgba(10, 10, 10, 0.7) 0%,
+                rgba(5, 5, 5, 0.8) 100%
+            );
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border-subtle);
             box-shadow: 
-                0 8px 32px rgba(0, 0, 0, 0.4),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+                0 1px 0 rgba(255, 255, 255, 0.05) inset,
+                0 20px 40px rgba(0, 0, 0, 0.4);
         }
 
-        /* Liquid glass text */
-        .liquid-text {
-            background: linear-gradient(
-                135deg,
-                rgba(255, 255, 255, 0.9) 0%,
-                rgba(255, 255, 255, 0.5) 50%,
-                rgba(255, 255, 255, 0.9) 100%
-            );
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
-        }
-
-        .liquid-text-subtle {
-            background: linear-gradient(
-                135deg,
-                rgba(255, 255, 255, 0.6) 0%,
-                rgba(255, 255, 255, 0.3) 50%,
-                rgba(255, 255, 255, 0.6) 100%
-            );
+        /* Typography */
+        .display-text {
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
 
-        /* Input fields */
-        .input-group {
+        .label-text {
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            color: var(--text-tertiary);
+        }
+
+        .mono-text {
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+            font-feature-settings: 'liga' 1, 'calt' 1;
+        }
+
+        /* Form inputs */
+        .input-wrapper {
             position: relative;
         }
 
-        .input-field {
+        .text-input {
             width: 100%;
-            padding: 16px 20px;
-            padding-right: 50px;
-            background: rgba(5, 5, 5, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 14px;
-            color: #ffffff;
-            font-size: 15px;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
+            padding: 14px 16px;
+            padding-right: 48px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .input-field:focus {
-            border-color: rgba(255, 255, 255, 0.2);
-            background: rgba(5, 5, 5, 0.9);
-            box-shadow: 
-                0 0 0 4px rgba(255, 255, 255, 0.05),
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        .text-input:focus {
             outline: none;
+            border-color: var(--border-medium);
+            background: var(--bg-secondary);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.03);
         }
 
-        .input-field::placeholder {
-            color: rgba(255, 255, 255, 0.3);
+        .text-input::placeholder {
+            color: var(--text-tertiary);
         }
 
-        /* Custom number input controls */
-        .number-input-wrapper {
-            position: relative;
+        /* Number input with custom controls */
+        .number-input-container {
             display: flex;
             align-items: center;
+            gap: 8px;
+            padding: 6px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .number-input-container:focus-within {
+            border-color: var(--border-medium);
+            background: var(--bg-secondary);
         }
 
         .number-input {
-            width: 100%;
-            padding: 16px 50px;
-            background: rgba(5, 5, 5, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 14px;
-            color: #ffffff;
-            font-size: 15px;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
+            flex: 1;
+            padding: 10px 14px;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            font-weight: 500;
             -moz-appearance: textfield;
         }
 
@@ -160,41 +184,23 @@
             margin: 0;
         }
 
-        .number-input[type=number] {
-            -moz-appearance: textfield;
-        }
-
-        .number-input:focus {
-            border-color: rgba(255, 255, 255, 0.2);
-            background: rgba(5, 5, 5, 0.9);
-            outline: none;
-        }
-
-        .number-controls {
-            position: absolute;
-            right: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
         .number-btn {
-            width: 24px;
-            height: 24px;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.05);
             border: none;
-            border-radius: 6px;
-            color: rgba(255, 255, 255, 0.6);
+            border-radius: 8px;
+            color: var(--text-secondary);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
         }
 
         .number-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
-            color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
         }
 
         .number-btn:active {
@@ -202,30 +208,34 @@
         }
 
         /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         .btn-primary {
             width: 100%;
-            padding: 16px;
-            background: linear-gradient(
-                135deg,
-                rgba(255, 255, 255, 0.95) 0%,
-                rgba(255, 255, 255, 0.85) 100%
-            );
+            background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
             color: #000000;
-            font-weight: 600;
-            font-size: 15px;
-            border: none;
-            border-radius: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
             box-shadow: 
-                0 4px 20px rgba(255, 255, 255, 0.1),
+                0 2px 8px rgba(255, 255, 255, 0.1),
                 inset 0 1px 0 rgba(255, 255, 255, 0.5);
         }
 
         .btn-primary:hover {
-            transform: translateY(-2px);
+            transform: translateY(-1px);
             box-shadow: 
-                0 8px 30px rgba(255, 255, 255, 0.15),
+                0 4px 16px rgba(255, 255, 255, 0.15),
                 inset 0 1px 0 rgba(255, 255, 255, 0.5);
         }
 
@@ -233,42 +243,45 @@
             transform: translateY(0);
         }
 
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.5);
         }
 
         .btn-secondary {
-            width: 100%;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.08);
-            color: #ffffff;
-            font-weight: 500;
-            font-size: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--border-medium);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
         }
 
         /* Modal */
-        .modal-overlay {
+        .modal-backdrop {
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 100;
+            z-index: 1000;
             animation: fadeIn 0.3s ease;
         }
 
@@ -277,12 +290,140 @@
             to { opacity: 1; }
         }
 
+        .modal-content {
+            animation: modalSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Log panel */
+        .log-container {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .log-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .log-content {
+            height: 600px;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .log-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .log-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .log-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .log-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .log-entry {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 6px 0;
+            animation: logSlideIn 0.2s ease;
+        }
+
+        @keyframes logSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .log-time {
+            color: var(--text-tertiary);
+            font-size: 11px;
+            min-width: 70px;
+        }
+
+        .log-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .log-message {
+            color: var(--text-secondary);
+            word-break: break-word;
+        }
+
+        .log-info { color: var(--text-secondary); }
+        .log-success { color: var(--accent-success); }
+        .log-error { color: var(--accent-error); }
+        .log-warning { color: var(--accent-warning); }
+
+        /* Status badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-badge.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-badge.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--accent-error);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .status-badge.running {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--accent-warning);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
         /* Spinner */
         .spinner {
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
             border: 2px solid rgba(255, 255, 255, 0.1);
-            border-top-color: #ffffff;
+            border-top-color: currentColor;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
@@ -291,43 +432,58 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Results box */
-        .results-box {
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+        /* Results panel */
+        .results-panel {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-subtle);
             border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .results-content {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            line-height: 1.8;
             padding: 16px;
-            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
-            font-size: 12px;
-            line-height: 1.6;
-            color: rgba(255, 255, 255, 0.7);
-            max-height: 300px;
+            max-height: 200px;
             overflow-y: auto;
-            backdrop-filter: blur(10px);
+            color: var(--text-secondary);
         }
 
-        .results-box::-webkit-scrollbar {
-            width: 6px;
+        /* Responsive grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 24px;
         }
 
-        .results-box::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 3px;
+        @media (min-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 420px 1fr;
+                align-items: start;
+            }
         }
 
-        .results-box::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
+        /* Section spacing */
+        .form-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        .results-box::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.3);
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
-        /* Icons */
+        /* Icon styling */
         .icon {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
         }
 
         .icon-lg {
@@ -335,265 +491,251 @@
             height: 24px;
         }
 
-        /* Label */
-        .label {
+        /* Utility */
+        .hidden {
+            display: none !important;
+        }
+
+        .flex-center {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.5);
-            font-weight: 500;
+            justify-content: center;
         }
 
-        /* Success count badge */
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            background: rgba(34, 197, 94, 0.1);
-            border: 1px solid rgba(34, 197, 94, 0.3);
-            border-radius: 20px;
-            font-size: 12px;
-            color: #22c55e;
-        }
-
-        /* Footer links */
-        .footer-link {
-            color: rgba(255, 255, 255, 0.4);
-            text-decoration: none;
-            transition: color 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .footer-link:hover {
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        /* Status animations */
-        .status-success {
-            color: #22c55e;
-            animation: slideIn 0.3s ease;
-        }
-
-        .status-error {
-            color: #ef4444;
-            animation: slideIn 0.3s ease;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .divider {
+            height: 1px;
+            background: var(--border-subtle);
+            margin: 24px 0;
         }
     </style>
 </head>
 <body>
-    <!-- Background Blobs -->
-    <div class="bg-blob blob-1"></div>
-    <div class="bg-blob blob-2"></div>
-    <div class="bg-blob blob-3"></div>
+    <!-- Ambient Background -->
+    <div class="ambient-light">
+        <div class="ambient-glow glow-1"></div>
+        <div class="ambient-glow glow-2"></div>
+    </div>
 
     <!-- Token Modal -->
-    <div id="tokenModal" class="modal-overlay">
-        <div class="glass-card p-8 max-w-md w-full mx-4" style="animation: slideIn 0.3s ease;">
+    <div id="tokenModal" class="modal-backdrop hidden">
+        <div class="glass-panel modal-content p-8 max-w-md w-full mx-4">
             <div class="text-center mb-6">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/5 mb-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 mb-4">
                     <i data-lucide="key" class="icon-lg" style="color: rgba(255,255,255,0.8);"></i>
                 </div>
-                <h2 class="text-2xl font-bold liquid-text mb-2">Authentication Required</h2>
-                <p class="liquid-text-subtle">Enter your GitHub token to continue</p>
+                <h2 class="text-2xl display-text mb-2">Authentication Required</h2>
+                <p style="color: var(--text-secondary);">Enter your GitHub token to continue</p>
             </div>
             
             <div class="mb-6">
-                <label class="label">
-                    <i data-lucide="shield" class="icon"></i>
-                    Personal Access Token
-                </label>
+                <label class="label-text mb-2 block">Personal Access Token</label>
                 <input 
                     type="password" 
                     id="tokenInput"
                     placeholder="ghp_..."
-                    class="input-field"
-                    style="font-family: 'SF Mono', monospace;"
+                    class="text-input mono-text"
                 />
             </div>
             
-            <div class="mb-6 glass-card p-4">
-                <p class="liquid-text-subtle text-sm mb-3">Getting your token:</p>
-                <ol class="liquid-text-subtle text-sm space-y-2">
+            <div class="glass-panel p-4 mb-6">
+                <p class="label-text mb-3">Getting your token</p>
+                <ol style="color: var(--text-secondary); font-size: 13px;" class="space-y-2">
                     <li class="flex items-start gap-2">
-                        <span class="text-white/30 mt-0.5">1.</span>
-                        <span>Visit <a href="https://github.com/settings/tokens" target="_blank" class="underline hover:text-white/70">GitHub Settings</a></span>
+                        <span style="color: var(--text-tertiary);">1.</span>
+                        <span>Visit <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--text-primary); text-decoration: underline;">GitHub Settings</a></span>
                     </li>
                     <li class="flex items-start gap-2">
-                        <span class="text-white/30 mt-0.5">2.</span>
+                        <span style="color: var(--text-tertiary);">2.</span>
                         <span>Generate new token (classic)</span>
                     </li>
                     <li class="flex items-start gap-2">
-                        <span class="text-white/30 mt-0.5">3.</span>
-                        <span>Select scopes: <code class="bg-white/10 px-2 py-0.5 rounded text-xs">repo</code> <code class="bg-white/10 px-2 py-0.5 rounded text-xs">workflow</code></span>
+                        <span style="color: var(--text-tertiary);">3.</span>
+                        <span>Select scopes: <code class="bg-white/10 px-2 py-0.5 rounded text-xs mono-text">repo</code> <code class="bg-white/10 px-2 py-0.5 rounded text-xs mono-text">workflow</code></span>
                     </li>
                     <li class="flex items-start gap-2">
-                        <span class="text-white/30 mt-0.5">4.</span>
+                        <span style="color: var(--text-tertiary);">4.</span>
                         <span>Copy and paste above</span>
                     </li>
                 </ol>
             </div>
             
-            <button onclick="saveToken()" class="btn-primary">
-                <span class="flex items-center justify-center gap-2">
-                    <i data-lucide="check" class="icon"></i>
-                    Save Token
-                </span>
+            <button onclick="saveToken()" class="btn btn-primary">
+                <i data-lucide="check" class="icon"></i>
+                Save Token
             </button>
         </div>
     </div>
 
-    <!-- Main Card -->
-    <div class="glass-card p-8 max-w-md w-full">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/5 mb-4">
-                <i data-lucide="bot" class="icon-lg" style="color: rgba(255,255,255,0.8);"></i>
+    <!-- Main Content -->
+    <div class="main-grid">
+        <!-- Left Panel: Controls -->
+        <div class="glass-panel rounded-3xl p-6">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/5 mb-4">
+                    <i data-lucide="bot" class="icon-lg" style="color: rgba(255,255,255,0.8);"></i>
+                </div>
+                <h1 class="text-3xl display-text mb-2">MeDo Bot</h1>
+                <p style="color: var(--text-secondary);">Automate account creation</p>
             </div>
-            <h1 class="text-3xl font-bold liquid-text mb-2">MeDo Bot</h1>
-            <p class="liquid-text-subtle">Automate your account creation</p>
-        </div>
 
-        <!-- Form -->
-        <form id="automationForm" class="space-y-5">
-            <!-- Accounts Input -->
-            <div class="input-group">
-                <label class="label">
-                    <i data-lucide="users" class="icon"></i>
-                    Number of Accounts
-                </label>
-                <div class="number-input-wrapper">
-                    <input 
-                        type="number" 
-                        id="accounts" 
-                        value="10" 
-                        min="1" 
-                        max="50"
-                        class="number-input"
-                    />
-                    <div class="number-controls">
-                        <button type="button" class="number-btn" onclick="adjustNumber('accounts', 1)">
-                            <i data-lucide="chevron-up" style="width: 16px; height: 16px;"></i>
-                        </button>
-                        <button type="button" class="number-btn" onclick="adjustNumber('accounts', -1)">
-                            <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
-                        </button>
+            <!-- Form -->
+            <form id="automationForm" class="form-section">
+                <!-- Accounts -->
+                <div class="input-group">
+                    <label class="label-text flex items-center gap-2">
+                        <i data-lucide="users" class="icon"></i>
+                        Number of Accounts
+                    </label>
+                    <div class="number-input-container">
+                        <input 
+                            type="number" 
+                            id="accounts" 
+                            value="10" 
+                            min="1" 
+                            max="50"
+                            class="number-input"
+                        />
+                        <div class="flex flex-col gap-1">
+                            <button type="button" class="number-btn" onclick="adjustNumber('accounts', 1)">
+                                <i data-lucide="chevron-up" style="width: 14px; height: 14px;"></i>
+                            </button>
+                            <button type="button" class="number-btn" onclick="adjustNumber('accounts', -1)">
+                                <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Workers Input -->
-            <div class="input-group">
-                <label class="label">
-                    <i data-lucide="cpu" class="icon"></i>
-                    Workers
-                </label>
-                <div class="number-input-wrapper">
-                    <input 
-                        type="number" 
-                        id="workers" 
-                        value="3" 
-                        min="1" 
-                        max="5"
-                        class="number-input"
-                    />
-                    <div class="number-controls">
-                        <button type="button" class="number-btn" onclick="adjustNumber('workers', 1)">
-                            <i data-lucide="chevron-up" style="width: 16px; height: 16px;"></i>
-                        </button>
-                        <button type="button" class="number-btn" onclick="adjustNumber('workers', -1)">
-                            <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
-                        </button>
+                <!-- Workers -->
+                <div class="input-group">
+                    <label class="label-text flex items-center gap-2">
+                        <i data-lucide="cpu" class="icon"></i>
+                        Workers
+                    </label>
+                    <div class="number-input-container">
+                        <input 
+                            type="number" 
+                            id="workers" 
+                            value="3" 
+                            min="1" 
+                            max="5"
+                            class="number-input"
+                        />
+                        <div class="flex flex-col gap-1">
+                            <button type="button" class="number-btn" onclick="adjustNumber('workers', 1)">
+                                <i data-lucide="chevron-up" style="width: 14px; height: 14px;"></i>
+                            </button>
+                            <button type="button" class="number-btn" onclick="adjustNumber('workers', -1)">
+                                <i data-lucide="chevron-down" style="width: 14px; height: 14px;"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Invite Link Input -->
-            <div class="input-group">
-                <label class="label">
-                    <i data-lucide="link" class="icon"></i>
-                    Invite Link
-                </label>
-                <input 
-                    type="text" 
-                    id="inviteLink" 
-                    placeholder="https://medo.dev/?invitecode=..."
-                    class="input-field"
-                />
-            </div>
-
-            <!-- Submit Button -->
-            <button type="submit" id="submitBtn" class="btn-primary">
-                <span class="flex items-center justify-center gap-2">
-                    <i data-lucide="rocket" class="icon"></i>
-                    Start Automation
-                </span>
-            </button>
-        </form>
-
-        <!-- Status -->
-        <div id="status" class="mt-6 hidden">
-            <div class="glass-card p-4">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="spinner"></div>
-                    <p id="statusText" class="liquid-text-subtle"></p>
+                <!-- Invite Link -->
+                <div class="input-group">
+                    <label class="label-text flex items-center gap-2">
+                        <i data-lucide="link" class="icon"></i>
+                        Invite Link
+                    </label>
+                    <div class="input-wrapper">
+                        <input 
+                            type="text" 
+                            id="inviteLink" 
+                            placeholder="https://medo.dev/?invitecode=..."
+                            class="text-input"
+                        />
+                    </div>
                 </div>
-                <a href="https://github.com/ryzexxs/medo-signup-bot/actions" target="_blank" class="footer-link text-sm">
-                    <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
-                    View live logs
-                </a>
-            </div>
-        </div>
 
-        <!-- Results -->
-        <div id="results" class="mt-6 hidden">
-            <div class="glass-card p-4">
+                <!-- Action Buttons -->
+                <div class="flex flex-col gap-3 pt-2">
+                    <button type="submit" id="submitBtn" class="btn btn-primary">
+                        <i data-lucide="rocket" class="icon"></i>
+                        Start Automation
+                    </button>
+                    <button type="button" id="stopBtn" class="btn btn-danger hidden" onclick="stopAutomation()">
+                        <i data-lucide="square" class="icon"></i>
+                        Stop Automation
+                    </button>
+                </div>
+            </form>
+
+            <div class="divider"></div>
+
+            <!-- Status -->
+            <div id="statusPanel" class="hidden">
                 <div class="flex items-center justify-between mb-3">
-                    <h3 class="font-semibold liquid-text flex items-center gap-2">
-                        <i data-lucide="circle-check" class="icon" style="color: #22c55e;"></i>
-                        Accounts Created
-                    </h3>
-                    <span id="successCount" class="badge">
-                        <i data-lucide="check" style="width: 14px; height: 14px;"></i>
+                    <span class="label-text">Status</span>
+                    <span id="statusBadge" class="status-badge running">
+                        <div class="spinner"></div>
+                        Running
+                    </span>
+                </div>
+                <div class="glass-panel p-4">
+                    <p id="statusText" style="color: var(--text-secondary); font-size: 13px;"></p>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div id="resultsPanel" class="hidden mt-4">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="label-text">Results</span>
+                    <span id="successBadge" class="status-badge success hidden">
+                        <i data-lucide="check-circle" style="width: 14px; height: 14px;"></i>
                         <span id="countValue">0</span> accounts
                     </span>
                 </div>
-                <pre id="resultsText" class="results-box"></pre>
-                <button onclick="copyResults()" class="btn-secondary mt-3">
-                    <span class="flex items-center justify-center gap-2">
-                        <i data-lucide="copy" class="icon"></i>
-                        Copy Results
-                    </span>
+                <div class="results-panel">
+                    <pre id="resultsText" class="results-content mono-text"></pre>
+                </div>
+                <button onclick="copyResults()" class="btn btn-secondary mt-3">
+                    <i data-lucide="copy" class="icon"></i>
+                    Copy Results
+                </button>
+            </div>
+
+            <!-- Footer -->
+            <div class="divider"></div>
+            <div class="flex justify-between items-center">
+                <a href="https://github.com/ryzexxs/medo-signup-bot/actions" target="_blank" 
+                   style="color: var(--text-tertiary); font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 6px;"
+                   class="hover:text-white transition-colors">
+                    <i data-lucide="github" style="width: 14px; height: 14px;"></i>
+                    Actions
+                </a>
+                <button onclick="clearToken()" 
+                        style="color: var(--text-tertiary); font-size: 12px; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px;"
+                        class="hover:text-white transition-colors">
+                    <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i>
+                    Reset Token
                 </button>
             </div>
         </div>
 
-        <!-- Footer -->
-        <div class="mt-8 pt-6 border-t border-white/5">
-            <div class="flex justify-between items-center">
-                <a href="https://github.com/ryzexxs/medo-signup-bot/actions" target="_blank" class="footer-link text-sm">
-                    <i data-lucide="github" style="width: 14px; height: 14px;"></i>
-                    View Actions
-                </a>
-                <button onclick="clearToken()" class="footer-link text-sm">
-                    <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i>
-                    Reset Token
-                </button>
+        <!-- Right Panel: Live Logs -->
+        <div class="glass-panel rounded-3xl p-6 hidden" id="logsPanel">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="terminal" class="icon-lg" style="color: var(--text-secondary);"></i>
+                    <h2 class="text-lg display-text">Live Logs</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="clearLogs()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;">
+                        <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                        Clear
+                    </button>
+                    <button onclick="downloadLogs()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 12px;">
+                        <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+                        Export
+                    </button>
+                </div>
+            </div>
+            <div class="log-container">
+                <div class="log-content" id="logContent">
+                    <!-- Logs will be inserted here -->
+                </div>
             </div>
         </div>
     </div>
@@ -604,13 +746,17 @@
         const WORKFLOW_FILE = 'medo-automation.yml';
         
         let GITHUB_TOKEN = localStorage.getItem('github_token');
+        let currentRunId = null;
+        let pollInterval = null;
+        let isRunning = false;
 
-        // Initialize Lucide icons
-        function initIcons() {
+        // Initialize
+        function init() {
             lucide.createIcons();
+            checkToken();
         }
 
-        // Show/hide token modal
+        // Token management
         function checkToken() {
             const modal = document.getElementById('tokenModal');
             if (!GITHUB_TOKEN) {
@@ -636,7 +782,7 @@
             document.getElementById('tokenInput').value = '';
         }
 
-        // Custom number input controls
+        // Number input
         function adjustNumber(inputId, delta) {
             const input = document.getElementById(inputId);
             const min = parseInt(input.min) || 1;
@@ -646,7 +792,47 @@
             input.value = newValue;
         }
 
-        // Handle form submit
+        // Logging
+        function addLog(message, type = 'info') {
+            const logContent = document.getElementById('logContent');
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            
+            const icons = {
+                info: 'circle',
+                success: 'check-circle',
+                error: 'alert-circle',
+                warning: 'alert-triangle'
+            };
+
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `
+                <span class="log-time mono-text">${time}</span>
+                <i data-lucide="${icons[type]}" class="log-icon log-${type}"></i>
+                <span class="log-message log-${type}">${message}</span>
+            `;
+            
+            logContent.appendChild(logEntry);
+            lucide.createIcons();
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('logContent').innerHTML = '';
+        }
+
+        function downloadLogs() {
+            const logs = document.getElementById('logContent').innerText;
+            const blob = new Blob([logs], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `medo-logs-${new Date().toISOString()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Form submission
         document.getElementById('automationForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -654,15 +840,23 @@
             const workers = document.getElementById('workers').value;
             const inviteLink = document.getElementById('inviteLink').value;
             
-            const submitBtn = document.getElementById('submitBtn');
-            const statusDiv = document.getElementById('status');
-            const statusText = document.getElementById('statusText');
-            const resultsDiv = document.getElementById('results');
+            if (!inviteLink) {
+                addLog('Please enter an invite link', 'error');
+                return;
+            }
+
+            // Update UI
+            isRunning = true;
+            document.getElementById('submitBtn').classList.add('hidden');
+            document.getElementById('stopBtn').classList.remove('hidden');
+            document.getElementById('statusPanel').classList.remove('hidden');
+            document.getElementById('logsPanel').classList.remove('hidden');
+            document.getElementById('resultsPanel').classList.add('hidden');
+            document.getElementById('statusBadge').className = 'status-badge running';
+            document.getElementById('statusBadge').innerHTML = '<div class="spinner"></div>Running';
+            document.getElementById('statusText').textContent = 'Starting automation...';
             
-            submitBtn.disabled = true;
-            statusDiv.classList.remove('hidden');
-            resultsDiv.classList.add('hidden');
-            statusText.textContent = 'Starting automation...';
+            addLog(`Starting automation: ${accounts} accounts, ${workers} workers`, 'info');
             
             try {
                 const response = await fetch(
@@ -685,40 +879,45 @@
                 );
 
                 if (response.ok) {
-                    statusText.innerHTML = '<span class="status-success">Automation started! Check Actions for progress.</span>';
-                    
-                    // Start polling for results
+                    addLog('Automation started successfully', 'success');
+                    document.getElementById('statusText').textContent = 'Workflow triggered. Monitoring progress...';
                     pollForResults();
                 } else {
                     const error = await response.json();
                     throw new Error(error.message || 'Failed to start');
                 }
             } catch (error) {
-                statusText.innerHTML = `<span class="status-error">Error: ${error.message}</span>`;
-                submitBtn.disabled = false;
+                addLog(`Error: ${error.message}`, 'error');
+                document.getElementById('statusText').innerHTML = `<span class="log-error">Error: ${error.message}</span>`;
+                resetUI();
             }
         });
 
-        function copyResults() {
-            const results = document.getElementById('resultsText').innerText;
-            navigator.clipboard.writeText(results);
-            
-            const btn = event.currentTarget;
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = '<span class="flex items-center justify-center gap-2"><i data-lucide="check" class="icon"></i> Copied!</span>';
+        function stopAutomation() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+            isRunning = false;
+            addLog('Automation stopped by user', 'warning');
+            document.getElementById('statusBadge').className = 'status-badge error';
+            document.getElementById('statusBadge').innerHTML = '<i data-lucide="square" style="width: 14px; height: 14px;"></i>Stopped';
             lucide.createIcons();
-            setTimeout(() => {
-                btn.innerHTML = originalHTML;
-                lucide.createIcons();
-            }, 2000);
+            resetUI();
         }
 
-        // Poll for completed runs
+        function resetUI() {
+            document.getElementById('submitBtn').classList.remove('hidden');
+            document.getElementById('stopBtn').classList.add('hidden');
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        // Poll for results
         async function pollForResults() {
             let attempts = 0;
-            const maxAttempts = 120;
+            const maxAttempts = 180; // 15 minutes
             
-            const interval = setInterval(async () => {
+            pollInterval = setInterval(async () => {
                 attempts++;
                 
                 try {
@@ -735,20 +934,24 @@
                     
                     if (data.workflow_runs && data.workflow_runs.length > 0) {
                         const run = data.workflow_runs[0];
+                        currentRunId = run.id;
                         
                         if (run.status === 'completed') {
-                            clearInterval(interval);
-                            document.getElementById('submitBtn').disabled = false;
+                            clearInterval(pollInterval);
+                            pollInterval = null;
                             
                             if (run.conclusion === 'success') {
+                                addLog('Workflow completed successfully', 'success');
                                 await fetchResults(run.id);
                             } else {
-                                document.getElementById('statusText').innerHTML = '<span class="status-error">Workflow failed</span>';
+                                addLog(`Workflow failed: ${run.conclusion}`, 'error');
+                                document.getElementById('statusBadge').className = 'status-badge error';
+                                document.getElementById('statusBadge').innerHTML = '<i data-lucide="x-circle" style="width: 14px; height: 14px;"></i>Failed';
+                                lucide.createIcons();
                             }
-                        } else if (attempts >= maxAttempts) {
-                            clearInterval(interval);
-                            document.getElementById('submitBtn').disabled = false;
-                            document.getElementById('statusText').innerHTML = '<span class="status-error">Timeout - check Actions</span>';
+                            resetUI();
+                        } else {
+                            addLog(`Workflow running... (${Math.round(attempts / 12)}s)`, 'info');
                         }
                     }
                 } catch (error) {
@@ -785,22 +988,42 @@
                         if (accountsMatch) {
                             const accountsText = accountsMatch[1].trim();
                             document.getElementById('resultsText').innerText = accountsText;
-                            document.getElementById('results').classList.remove('hidden');
+                            document.getElementById('resultsPanel').classList.remove('hidden');
                             
                             const count = accountsText.split('\n').filter(l => l.includes('@')).length;
                             document.getElementById('countValue').textContent = count;
-                            document.getElementById('statusText').innerHTML = '<span class="status-success">Completed - ' + count + ' accounts created!</span>';
+                            document.getElementById('successBadge').classList.remove('hidden');
+                            
+                            document.getElementById('statusBadge').className = 'status-badge success';
+                            document.getElementById('statusBadge').innerHTML = `<i data-lucide="check-circle" style="width: 14px; height: 14px;"></i>Completed - ${count} accounts`;
+                            lucide.createIcons();
+                            
+                            addLog(`Successfully created ${count} accounts`, 'success');
                         }
                     }
                 }
             } catch (error) {
                 console.error('Error fetching results:', error);
+                addLog('Could not fetch results', 'error');
             }
         }
 
+        function copyResults() {
+            const results = document.getElementById('resultsText').innerText;
+            navigator.clipboard.writeText(results);
+            
+            const btn = event.currentTarget;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="check" class="icon"></i>Copied!';
+            lucide.createIcons();
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                lucide.createIcons();
+            }, 2000);
+        }
+
         // Initialize on load
-        checkToken();
-        initIcons();
+        init();
     </script>
 </body>
 </html>
