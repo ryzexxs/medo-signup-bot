@@ -4,18 +4,17 @@
 
 This system includes:
 - **Frontend**: Secure web interface with access key authentication
-- **Backend**: Node.js API for key validation (JSON file storage)
-- **Discord Bot**: Generate and manage access keys via Discord
+- **Backend + Discord Bot**: Combined in one process (JSON file storage)
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Simplified!)
 
 ### 1. Create Discord Bot
 
 1. Go to https://discord.com/developers/applications
 2. Click **"New Application"** → Name it "MeDo Bot"
-3. Go to **"Bot"** tab → Click **"Reset Token"** → Copy token
+3. Go to **"Bot"** tab → Click **"Reset Token"** → **Copy token**
 4. Enable these under **Privileged Gateway Intents**:
    - ✅ Server Members Intent
    - ✅ Message Content Intent
@@ -30,40 +29,7 @@ Use this URL (replace `YOUR_CLIENT_ID`):
 https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=8&scope=bot%20applications.commands
 ```
 
-### 3. Setup Backend
-
-```bash
-cd medo/backend
-
-# Install dependencies
-npm install
-
-# Create .env file
-cp ../.env.example .env
-
-# Edit .env with your Discord token
-nano .env
-```
-
-**.env file:**
-```env
-PORT=3000
-ALLOWED_ORIGINS=https://your-vercel-url.vercel.app
-DISCORD_TOKEN=your_bot_token_here
-DISCORD_CLIENT_ID=your_bot_client_id_here
-```
-
-### 4. Start Backend
-
-```bash
-# Development (auto-reload)
-npm run dev
-
-# Production
-npm start
-```
-
-### 5. Start Discord Bot
+### 3. Setup Bot + Backend
 
 ```bash
 cd medo/bot
@@ -80,13 +46,32 @@ nano .env
 
 **.env file:**
 ```env
+PORT=3000
+ALLOWED_ORIGINS=https://your-vercel-url.vercel.app,http://localhost:5173
 DISCORD_TOKEN=your_bot_token_here
 DISCORD_CLIENT_ID=your_bot_client_id_here
 ```
 
+### 4. Start Bot + Backend
+
 ```bash
-# Start bot
-node index.js
+# Development (auto-reload)
+npm run dev
+
+# Production
+npm start
+```
+
+**You'll see:**
+```
+✅ Discord bot logged in as YourBot#1234
+📊 Serving 1 servers
+🔄 Registering slash commands...
+✅ Slash commands registered globally
+📁 Data files initialized
+🔒 Backend API running on port 3000
+📁 Data directory: /path/to/data
+🌐 Backend API available at http://localhost:3000
 ```
 
 ---
@@ -141,17 +126,17 @@ View statistics for a specific key.
 
 ### Backend Security
 - ✅ CORS restrictions
-- ✅ Rate limiting ready
-- ✅ Secure key hashing
-- ✅ JSON file storage (no external DB)
+- ✅ Secure key hashing (SHA-256)
+- ✅ JSON file storage (no external DB needed)
 - ✅ Input validation
 - ✅ Error handling
+- ✅ Security headers
 
 ### Discord Bot Security
 - ✅ Authorized users only (whitelist)
 - ✅ Ephemeral responses (commands hidden)
 - ✅ DM support for key delivery
-- ✅ Secure token storage
+- ✅ Secure token storage via .env
 
 ---
 
@@ -165,16 +150,16 @@ View statistics for a specific key.
 4. Set **Root Directory**: `frontend`
 5. Deploy
 
-### Backend (Railway/Render)
+### Backend + Bot (Railway/Render)
 
 **Railway:**
 1. Create new project
 2. Connect GitHub repo
-3. Set **Root Directory**: `backend`
+3. Set **Root Directory**: `bot`
 4. Add environment variables from `.env`
 5. Deploy
 
-**Update frontend** with backend URL:
+**Update frontend** with backend URL in `index.html`:
 ```javascript
 const API_BASE = 'https://your-backend.railway.app';
 ```
@@ -183,7 +168,7 @@ const API_BASE = 'https://your-backend.railway.app';
 
 ## 📊 Data Storage
 
-All data is stored in `backend/data/`:
+All data is stored in `bot/data/` (created automatically):
 
 - `keys.json`: Access keys database
 - `usage.json`: Key usage statistics
@@ -233,18 +218,27 @@ const AUTHORIZED_USERS = [
 - Verify backend URL in frontend
 - Check network tab for errors
 
+### Bot shows error on startup
+- Verify Discord token is correct
+- Check all intents are enabled in Discord Developer Portal
+- Ensure bot is invited to at least one server
+
 ---
 
 ## 📝 Example Workflow
 
-1. User joins Discord server
-2. Admin runs: `/generate-key duration:1h user:@user`
-3. User receives key via DM
-4. User visits website
-5. User enters access key
-6. Key validated → GitHub token modal appears
-7. User enters GitHub token
-8. Automation starts!
+1. **Admin generates key** in Discord:
+   ```
+   /generate-key duration:1h user:@user
+   ```
+
+2. **User receives key** via DM with instructions
+
+3. **User visits website**:
+   - Enters access key → Validated ✅
+   - Enters GitHub token → Automation starts!
+
+4. **After 1 hour**: Key expires, user must request new one
 
 ---
 
@@ -263,11 +257,23 @@ const AUTHORIZED_USERS = [
 
 ## 🔑 Best Practices
 
-1. **Short durations**: Give keys for 1-2 hours max
+1. **Short durations**: Give keys for 1-2 hours max for trial users
 2. **Monitor usage**: Use `/list-keys` regularly
-3. **Revoke unused**: Clean up old keys
+3. **Revoke unused**: Clean up old/unused keys
 4. **One per user**: Assign keys to specific users
-5. **Backup data**: Copy `backend/data/` regularly
+5. **Backup data**: Copy `bot/data/` folder regularly
+
+---
+
+## 🎉 You're Done!
+
+**Single command to run everything:**
+```bash
+cd medo/bot
+npm start
+```
+
+This starts both the Discord bot AND the backend API!
 
 ---
 

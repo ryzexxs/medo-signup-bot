@@ -1,0 +1,16 @@
+{
+  "name": "medo-bot",
+  "version": "1.0.0",
+  "description": "Discord bot + Backend API for MeDo Automation",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.1",
+    "express": "^4.18.2"
+  }
+}
