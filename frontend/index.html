@@ -624,8 +624,6 @@
                 <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/5 mb-4">
                     <i data-lucide="bot" class="icon-lg" style="color: rgba(255,255,255,0.85);"></i>
                 </div>
-                <h1 class="text-3xl display-text mb-1.5">MeDo Bot</h1>
-                <p style="color: var(--text-secondary); font-size: 13px;">Automate account creation</p>
             </div>
 
             <!-- Form -->
@@ -796,7 +794,7 @@
         let currentRunId = null;
         let pollInterval = null;
         let isRunning = false;
-        let lastLogPosition = 0;
+        let fetchedLogUrls = new Set();
 
         // Initialize
         function init() {
@@ -852,6 +850,12 @@
                 warning: 'alert-triangle'
             };
 
+            // Check if this log already exists
+            const existingLogs = logContent.querySelectorAll('.log-message');
+            for (let log of existingLogs) {
+                if (log.textContent === message) return; // Don't add duplicate
+            }
+
             const logEntry = document.createElement('div');
             logEntry.className = 'log-entry';
             logEntry.innerHTML = `
@@ -867,7 +871,7 @@
 
         function clearLogs() {
             document.getElementById('logContent').innerHTML = '';
-            lastLogPosition = 0;
+            fetchedLogUrls.clear();
         }
 
         function downloadLogs() {
@@ -888,7 +892,7 @@
             try {
                 // Get jobs for this run
                 const jobsResponse = await fetch(
-                    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runs/${runId}/jobs`,
+                    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runs/${runId}/jobs?per_page=10`,
                     {
                         headers: {
                             'Authorization': `token ${GITHUB_TOKEN}`,
@@ -899,42 +903,59 @@
                 const jobs = await jobsResponse.json();
                 
                 if (jobs.jobs && jobs.jobs.length > 0) {
-                    const job = jobs.jobs[0];
-                    
-                    // Get job steps logs
-                    if (job.steps && job.steps.length > 0) {
-                        for (const step of job.steps) {
-                            if (step.name && step.name.includes('Run MeDo')) {
-                                // This is the step with our script output
-                                if (step.log && step.log.url) {
-                                    const logResponse = await fetch(step.log.url, {
-                                        headers: {
-                                            'Authorization': `token ${GITHUB_TOKEN}`,
-                                            'Accept': 'application/vnd.github.v3+json',
-                                        }
-                                    });
-                                    const logData = await logResponse.text();
+                    for (const job of jobs.jobs) {
+                        if (job.steps && job.steps.length > 0) {
+                            for (const step of job.steps) {
+                                // Look for the "Run MeDo Automation" step
+                                if (step.name && step.name.includes('Run MeDo')) {
+                                    const logUrl = step.log?.url;
                                     
-                                    // Parse and display logs
-                                    const lines = logData.split('\n').filter(line => line.trim());
-                                    
-                                    // Only show new lines (not already displayed)
-                                    const newLines = lines.slice(lastLogPosition);
-                                    newLines.forEach(line => {
-                                        // Clean up GitHub log format
-                                        const cleanLine = line.replace(/^\[\d+m/g, '').replace(/\[\d+m/g, '');
-                                        if (cleanLine.trim() && !cleanLine.includes('Run python medo.py')) {
-                                            // Determine log type from content
-                                            let logType = 'info';
-                                            if (cleanLine.includes('SUCCESS') || cleanLine.includes('✓')) logType = 'success';
-                                            if (cleanLine.includes('Failed') || cleanLine.includes('✗') || cleanLine.includes('Error')) logType = 'error';
-                                            if (cleanLine.includes('Retry')) logType = 'warning';
+                                    if (logUrl && !fetchedLogUrls.has(logUrl)) {
+                                        fetchedLogUrls.add(logUrl);
+                                        
+                                        const logResponse = await fetch(logUrl, {
+                                            headers: {
+                                                'Authorization': `token ${GITHUB_TOKEN}`,
+                                                'Accept': 'application/vnd.github.v3+json',
+                                            }
+                                        });
+                                        const logText = await logResponse.text();
+                                        
+                                        // Parse log lines
+                                        const lines = logText.split('\n').filter(line => line.trim());
+                                        
+                                        lines.forEach(line => {
+                                            // Clean GitHub ANSI codes
+                                            let cleanLine = line.replace(/\x1b\[\d+m/g, '').trim();
                                             
-                                            addLog(cleanLine, logType);
-                                        }
-                                    });
-                                    
-                                    lastLogPosition = lines.length;
+                                            // Skip GitHub setup lines
+                                            if (cleanLine.includes('Getting action download') || 
+                                                cleanLine.includes('Download action') ||
+                                                cleanLine.includes('Setting up auth') ||
+                                                cleanLine.includes('Checking out') ||
+                                                cleanLine.includes('Run actions/')) {
+                                                return;
+                                            }
+                                            
+                                            // Determine log type
+                                            let logType = 'info';
+                                            if (cleanLine.includes('SUCCESS') || cleanLine.includes('✓') || 
+                                                cleanLine.includes('created successfully') || cleanLine.includes('Complete')) {
+                                                logType = 'success';
+                                            }
+                                            if (cleanLine.includes('Failed') || cleanLine.includes('✗') || 
+                                                cleanLine.includes('Error') || cleanLine.includes('Exception')) {
+                                                logType = 'error';
+                                            }
+                                            if (cleanLine.includes('Retry') || cleanLine.includes('Warning')) {
+                                                logType = 'warning';
+                                            }
+                                            
+                                            if (cleanLine && cleanLine.length > 0) {
+                                                addLog(cleanLine, logType);
+                                            }
+                                        });
+                                    }
                                 }
                             }
                         }
@@ -999,10 +1020,10 @@
                     addLog('Automation started successfully', 'success');
                     document.getElementById('statusText').textContent = 'Workflow triggered. Fetching logs...';
                     
-                    // Wait a few seconds for workflow to start, then fetch logs
+                    // Wait for workflow to start, then poll
                     setTimeout(() => {
                         pollForResults();
-                    }, 5000);
+                    }, 8000);
                 } else {
                     const error = await response.json();
                     throw new Error(error.message || 'Failed to start');
@@ -1035,7 +1056,7 @@
                     }
                 );
                 
-                if (response.ok) {
+                if (response.ok || response.status === 202) {
                     addLog('Workflow cancellation requested', 'success');
                     document.getElementById('statusBadge').className = 'status-badge error';
                     document.getElementById('statusBadge').innerHTML = '<i data-lucide="square" style="width: 12px; height: 12px;"></i>Stopped';
@@ -1065,7 +1086,7 @@
         // Poll for results and fetch logs
         async function pollForResults() {
             let attempts = 0;
-            const maxAttempts = 180;
+            const maxAttempts = 300; // 15 minutes at 3s intervals
             
             // Fetch logs immediately
             await fetchRealLogs(currentRunId);
@@ -1114,14 +1135,12 @@
                                 lucide.createIcons();
                             }
                             resetUI();
-                        } else {
-                            addLog(`Running... (${Math.round(attempts / 12)}s)`, 'info');
                         }
                     }
                 } catch (error) {
                     console.error('Polling error:', error);
                 }
-            }, 3000); // Poll every 3 seconds for logs
+            }, 3000);
         }
 
         async function fetchResults(runId) {
@@ -1137,32 +1156,38 @@
                 const jobs = await jobsResponse.json();
                 
                 if (jobs.jobs && jobs.jobs.length > 0) {
-                    const logsUrl = jobs.jobs[0].steps?.[5]?.steps?.[0]?.log?.url;
-                    
-                    if (logsUrl) {
-                        const logsResponse = await fetch(logsUrl, {
-                            headers: {
-                                'Authorization': `token ${GITHUB_TOKEN}`,
-                                'Accept': 'application/vnd.github.v3+json',
+                    // Get logs from the "Run MeDo Automation" step
+                    const job = jobs.jobs[0];
+                    if (job.steps && job.steps.length > 0) {
+                        for (const step of job.steps) {
+                            if (step.name && step.name.includes('Show Results')) {
+                                if (step.log && step.log.url) {
+                                    const logsResponse = await fetch(step.log.url, {
+                                        headers: {
+                                            'Authorization': `token ${GITHUB_TOKEN}`,
+                                            'Accept': 'application/vnd.github.v3+json',
+                                        }
+                                    });
+                                    const logs = await logsResponse.text();
+                                    
+                                    const accountsMatch = logs.match(/Accounts created:([\s\S]*?)=====/);
+                                    if (accountsMatch) {
+                                        const accountsText = accountsMatch[1].trim();
+                                        document.getElementById('resultsText').innerText = accountsText;
+                                        document.getElementById('resultsPanel').classList.remove('hidden');
+                                        
+                                        const count = accountsText.split('\n').filter(l => l.includes('@')).length;
+                                        document.getElementById('countValue').textContent = count;
+                                        document.getElementById('successBadge').classList.remove('hidden');
+                                        
+                                        document.getElementById('statusBadge').className = 'status-badge success';
+                                        document.getElementById('statusBadge').innerHTML = `<i data-lucide="check-circle-2" style="width: 12px; height: 12px;"></i>${count} accounts`;
+                                        lucide.createIcons();
+                                        
+                                        addLog(`Created ${count} accounts`, 'success');
+                                    }
+                                }
                             }
-                        });
-                        const logs = await logsResponse.text();
-                        
-                        const accountsMatch = logs.match(/Accounts created:([\s\S]*?)=====/);
-                        if (accountsMatch) {
-                            const accountsText = accountsMatch[1].trim();
-                            document.getElementById('resultsText').innerText = accountsText;
-                            document.getElementById('resultsPanel').classList.remove('hidden');
-                            
-                            const count = accountsText.split('\n').filter(l => l.includes('@')).length;
-                            document.getElementById('countValue').textContent = count;
-                            document.getElementById('successBadge').classList.remove('hidden');
-                            
-                            document.getElementById('statusBadge').className = 'status-badge success';
-                            document.getElementById('statusBadge').innerHTML = `<i data-lucide="check-circle-2" style="width: 12px; height: 12px;"></i>${count} accounts`;
-                            lucide.createIcons();
-                            
-                            addLog(`Created ${count} accounts`, 'success');
                         }
                     }
                 }
