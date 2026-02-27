@@ -739,13 +739,7 @@
             <!-- Footer Links -->
             <div class="divider" style="margin: 14px 0;"></div>
             <div class="flex justify-center items-center gap-5">
-                <a href="https://github.com/ryzexxs/medo-signup-bot/actions" target="_blank" 
-                   style="color: var(--text-tertiary); font-size: 11px; text-decoration: none; display: flex; align-items: center; gap: 5px;"
-                   class="hover:text-white transition-colors">
-                    <i data-lucide="github" style="width: 13px; height: 13px;"></i>
-                    Actions
-                </a>
-                <button onclick="clearToken()" 
+                <button onclick="clearToken()"
                         style="color: var(--text-tertiary); font-size: 11px; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px;"
                         class="hover:text-white transition-colors">
                     <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i>
@@ -772,20 +766,25 @@
                     </button>
                 </div>
             </div>
-            <div class="log-container" style="height: calc(100vh - 180px); max-height: 500px;">
-                <div class="log-content" id="logContent">
-                    <!-- Logs inserted here -->
+            
+            <!-- Status Panel (shown during run) -->
+            <div id="logsStatusPanel" class="hidden mb-3">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                        <div class="spinner" style="width: 12px; height: 12px; border-width: 1.5px;"></div>
+                        <span id="logsStatusText" style="color: var(--text-secondary); font-size: 11px;">Running...</span>
+                    </div>
+                    <span id="logsTimeText" style="color: var(--text-tertiary); font-size: 10px;">0s</span>
+                </div>
+                <!-- Progress bar -->
+                <div style="width: 100%; height: 3px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden;">
+                    <div id="logsProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent-warning), var(--accent-success)); border-radius: 2px; transition: width 0.3s ease;"></div>
                 </div>
             </div>
-            <!-- Logs Footer -->
-            <div class="mt-3 pt-3" style="border-top: 1px solid var(--border-subtle);">
-                <div class="flex justify-between items-center text-xs" style="color: var(--text-tertiary);">
-                    <span>Powered by GitHub Actions</span>
-                    <a href="https://github.com/ryzexxs/medo-signup-bot" target="_blank" 
-                       style="color: var(--text-tertiary); text-decoration: none;"
-                       class="hover:text-white transition-colors">
-                        View Repository →
-                    </a>
+            
+            <div class="log-container" style="height: calc(100vh - 220px); max-height: 500px;">
+                <div class="log-content" id="logContent">
+                    <!-- Logs inserted here -->
                 </div>
             </div>
         </div>
@@ -1014,11 +1013,8 @@
             isRunning = true;
             document.getElementById('submitBtn').classList.add('hidden');
             document.getElementById('stopBtn').classList.remove('hidden');
-            document.getElementById('statusPanel').classList.remove('hidden');
+            document.getElementById('statusPanel').classList.add('hidden');
             document.getElementById('resultsPanel').classList.add('hidden');
-            document.getElementById('statusBadge').className = 'status-badge running';
-            document.getElementById('statusBadge').innerHTML = '<div class="spinner"></div>Running';
-            document.getElementById('statusText').textContent = 'Starting automation...';
             
             addLog(`Starting: ${accounts} accounts, ${workers} workers`, 'info');
             
@@ -1044,7 +1040,6 @@
 
                 if (response.ok) {
                     addLog('Automation started successfully', 'success');
-                    document.getElementById('statusText').textContent = 'Workflow triggered. Waiting for logs...';
                     
                     // Wait for workflow to actually start and generate logs
                     setTimeout(() => {
@@ -1114,6 +1109,9 @@
             let attempts = 0;
             const maxAttempts = 300; // 10 minutes at 2s intervals
             
+            // Show logs status panel
+            document.getElementById('logsStatusPanel').classList.remove('hidden');
+            
             pollInterval = setInterval(async () => {
                 attempts++;
                 
@@ -1133,12 +1131,22 @@
                         const run = data.workflow_runs[0];
                         currentRunId = run.id;
                         
+                        // Calculate progress
+                        const startTime = new Date(run.created_at).getTime();
+                        const elapsed = Math.round((Date.now() - startTime) / 1000);
+                        
+                        // Update logs status panel
+                        document.getElementById('logsTimeText').textContent = `${elapsed}s`;
+                        
                         // Update status text with run info in real-time
                         if (run.status === 'queued') {
-                            document.getElementById('statusText').textContent = `Queued... (position ${run.run_number})`;
+                            document.getElementById('logsStatusText').textContent = 'Queued...';
+                            document.getElementById('logsProgressBar').style.width = '10%';
                         } else if (run.status === 'in_progress') {
-                            const elapsed = Math.round((Date.now() - new Date(run.created_at).getTime()) / 1000);
-                            document.getElementById('statusText').textContent = `Running... ${elapsed}s elapsed`;
+                            document.getElementById('logsStatusText').textContent = `Running...`;
+                            // Estimate progress based on elapsed time (assume ~60s average)
+                            const progress = Math.min(90, Math.round((elapsed / 60) * 100));
+                            document.getElementById('logsProgressBar').style.width = `${progress}%`;
                             
                             // Show current step based on jobs
                             const jobsResponse = await fetch(
@@ -1153,7 +1161,7 @@
                             if (jobs.jobs && jobs.jobs.length > 0) {
                                 const currentJob = jobs.jobs.find(j => j.status === 'in_progress') || jobs.jobs[jobs.jobs.length - 1];
                                 if (currentJob) {
-                                    addLog(`Current step: ${currentJob.name} (${currentJob.status})`, 'info');
+                                    addLog(`Current: ${currentJob.name}`, 'info');
                                 }
                             }
                         }
@@ -1162,25 +1170,25 @@
                             clearInterval(pollInterval);
                             pollInterval = null;
                             
+                            // Update progress bar to 100%
+                            document.getElementById('logsProgressBar').style.width = '100%';
+                            document.getElementById('logsProgressBar').style.background = 'var(--accent-success)';
+                            
                             // Fetch logs now that job is complete
                             await fetchRealLogs(run.id);
                             
                             if (run.conclusion === 'success') {
                                 addLog('Workflow completed successfully', 'success');
-                                document.getElementById('statusText').textContent = 'Completed! Fetching results...';
+                                document.getElementById('logsStatusText').textContent = 'Completed!';
                                 await fetchResults(run.id);
                             } else if (run.conclusion === 'cancelled') {
                                 addLog('Workflow was cancelled', 'warning');
-                                document.getElementById('statusBadge').className = 'status-badge error';
-                                document.getElementById('statusBadge').innerHTML = '<i data-lucide="square" style="width: 12px; height: 12px;"></i>Cancelled';
-                                document.getElementById('statusText').textContent = 'Workflow cancelled';
-                                lucide.createIcons();
+                                document.getElementById('logsStatusText').textContent = 'Cancelled';
+                                document.getElementById('logsProgressBar').style.background = 'var(--accent-error)';
                             } else {
                                 addLog(`Workflow failed: ${run.conclusion}`, 'error');
-                                document.getElementById('statusBadge').className = 'status-badge error';
-                                document.getElementById('statusBadge').innerHTML = '<i data-lucide="x-circle" style="width: 12px; height: 12px;"></i>Failed';
-                                document.getElementById('statusText').textContent = `Failed: ${run.conclusion}`;
-                                lucide.createIcons();
+                                document.getElementById('logsStatusText').textContent = `Failed: ${run.conclusion}`;
+                                document.getElementById('logsProgressBar').style.background = 'var(--accent-error)';
                             }
                             resetUI();
                         }
