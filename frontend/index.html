@@ -713,7 +713,7 @@
                     </span>
                 </div>
                 <div class="glass-panel p-3" style="background: rgba(255,255,255,0.03);">
-                    <p id="statusText" style="color: var(--text-secondary); font-size: 11px;"></p>
+                    <p id="statusText" style="color: var(--text-secondary); font-size: 11px; line-height: 1.5;"></p>
                 </div>
             </div>
 
@@ -892,7 +892,10 @@
 
         // Fetch real GitHub Actions logs
         async function fetchRealLogs(runId) {
-            if (!runId) return;
+            if (!runId) {
+                console.log('No runId for log fetch');
+                return;
+            }
             
             try {
                 // Get jobs for this run
@@ -905,55 +908,76 @@
                         }
                     }
                 );
+                
+                if (!jobsResponse.ok) {
+                    console.log('Jobs fetch failed:', jobsResponse.status);
+                    return;
+                }
+                
                 const jobs = await jobsResponse.json();
+                console.log('Fetched jobs:', jobs.jobs?.length || 0);
                 
                 if (jobs.jobs && jobs.jobs.length > 0) {
                     for (const job of jobs.jobs) {
+                        console.log('Job:', job.name, 'Steps:', job.steps?.length || 0);
+                        
                         if (job.steps && job.steps.length > 0) {
                             for (const step of job.steps) {
-                                // Fetch logs from ALL steps, not just "Run MeDo"
                                 const logUrl = step.log?.url;
                                 
-                                if (logUrl && !fetchedLogUrls.has(logUrl)) {
-                                    fetchedLogUrls.add(logUrl);
+                                if (logUrl) {
+                                    console.log('Step:', step.name, 'Log URL:', logUrl ? 'available' : 'none', 'Fetched:', fetchedLogUrls.has(logUrl));
                                     
-                                    const logResponse = await fetch(logUrl, {
-                                        headers: {
-                                            'Authorization': `token ${GITHUB_TOKEN}`,
-                                            'Accept': 'application/vnd.github.v3+json',
-                                        }
-                                    });
-                                    const logText = await logResponse.text();
-                                    
-                                    // Parse log lines
-                                    const lines = logText.split('\n').filter(line => line.trim());
-                                    
-                                    lines.forEach(line => {
-                                        // Clean GitHub ANSI codes
-                                        let cleanLine = line.replace(/\x1b\[\d+m/g, '').trim();
+                                    if (logUrl && !fetchedLogUrls.has(logUrl)) {
+                                        fetchedLogUrls.add(logUrl);
                                         
-                                        // Determine log type
-                                        let logType = 'info';
-                                        if (cleanLine.includes('SUCCESS') || cleanLine.includes('✓') || 
-                                            cleanLine.includes('created successfully') || cleanLine.includes('Complete') ||
-                                            cleanLine.includes('Successfully installed') || cleanLine.includes('succeeded')) {
-                                            logType = 'success';
-                                        }
-                                        if (cleanLine.includes('Failed') || cleanLine.includes('✗') || 
-                                            cleanLine.includes('Error') || cleanLine.includes('Exception') ||
-                                            cleanLine.includes('fatal:')) {
-                                            logType = 'error';
-                                        }
-                                        if (cleanLine.includes('Retry') || cleanLine.includes('Warning') ||
-                                            cleanLine.includes('warning:')) {
-                                            logType = 'warning';
+                                        const logResponse = await fetch(logUrl, {
+                                            headers: {
+                                                'Authorization': `token ${GITHUB_TOKEN}`,
+                                                'Accept': 'application/vnd.github.v3+json',
+                                            }
+                                        });
+                                        
+                                        if (!logResponse.ok) {
+                                            console.log('Log fetch failed:', logResponse.status);
+                                            continue;
                                         }
                                         
-                                        // Show ALL lines
-                                        if (cleanLine && cleanLine.length > 0) {
+                                        const logText = await logResponse.text();
+                                        console.log('Log text length:', logText.length);
+                                        
+                                        // Parse log lines
+                                        const lines = logText.split('\n').filter(line => line.trim());
+                                        console.log('Log lines:', lines.length);
+                                        
+                                        lines.forEach(line => {
+                                            // Clean GitHub ANSI codes
+                                            let cleanLine = line.replace(/\x1b\[\d+m/g, '').trim();
+                                            
+                                            // Skip empty or very short lines
+                                            if (cleanLine.length < 2) return;
+                                            
+                                            // Determine log type
+                                            let logType = 'info';
+                                            if (cleanLine.includes('SUCCESS') || cleanLine.includes('✓') || 
+                                                cleanLine.includes('created successfully') || cleanLine.includes('Complete') ||
+                                                cleanLine.includes('Successfully installed') || cleanLine.includes('succeeded') ||
+                                                cleanLine.includes('Complete!')) {
+                                                logType = 'success';
+                                            }
+                                            if (cleanLine.includes('Failed') || cleanLine.includes('✗') || 
+                                                cleanLine.includes('Error') || cleanLine.includes('Exception') ||
+                                                cleanLine.includes('fatal:') || cleanLine.includes('ERROR')) {
+                                                logType = 'error';
+                                            }
+                                            if (cleanLine.includes('Retry') || cleanLine.includes('Warning') ||
+                                                cleanLine.includes('warning:') || cleanLine.includes('WARNING')) {
+                                                logType = 'warning';
+                                            }
+                                            
                                             addLog(cleanLine, logType);
-                                        }
-                                    });
+                                        });
+                                    }
                                 }
                             }
                         }
@@ -1016,12 +1040,12 @@
 
                 if (response.ok) {
                     addLog('Automation started successfully', 'success');
-                    document.getElementById('statusText').textContent = 'Workflow triggered. Fetching logs...';
+                    document.getElementById('statusText').textContent = 'Workflow triggered. Waiting for logs...';
                     
-                    // Wait for workflow to start, then poll
+                    // Wait for workflow to actually start and generate logs
                     setTimeout(() => {
                         pollForResults();
-                    }, 5000);
+                    }, 10000); // Wait 10 seconds for first logs to be available
                 } else {
                     const error = await response.json();
                     throw new Error(error.message || 'Failed to start');
@@ -1084,7 +1108,7 @@
         // Poll for results and fetch logs
         async function pollForResults() {
             let attempts = 0;
-            const maxAttempts = 300; // 15 minutes at 3s intervals
+            const maxAttempts = 300; // 10 minutes at 2s intervals
             
             // Fetch logs immediately
             await fetchRealLogs(currentRunId);
@@ -1092,7 +1116,7 @@
             pollInterval = setInterval(async () => {
                 attempts++;
                 
-                // Fetch real logs from GitHub Actions
+                // Fetch real logs from GitHub Actions every poll
                 await fetchRealLogs(currentRunId);
                 
                 try {
@@ -1111,25 +1135,33 @@
                         const run = data.workflow_runs[0];
                         currentRunId = run.id;
                         
+                        // Update status text with run info
+                        if (run.status === 'in_progress') {
+                            document.getElementById('statusText').textContent = `Workflow running... (${Math.round(run.elapsed_time || 0)}s)`;
+                        }
+                        
                         if (run.status === 'completed') {
                             clearInterval(pollInterval);
                             pollInterval = null;
                             
-                            // Fetch final logs
+                            // Final log fetch
                             await fetchRealLogs(run.id);
                             
                             if (run.conclusion === 'success') {
                                 addLog('Workflow completed successfully', 'success');
+                                document.getElementById('statusText').textContent = 'Completed! Fetching results...';
                                 await fetchResults(run.id);
                             } else if (run.conclusion === 'cancelled') {
                                 addLog('Workflow was cancelled', 'warning');
                                 document.getElementById('statusBadge').className = 'status-badge error';
                                 document.getElementById('statusBadge').innerHTML = '<i data-lucide="square" style="width: 12px; height: 12px;"></i>Cancelled';
+                                document.getElementById('statusText').textContent = 'Workflow cancelled';
                                 lucide.createIcons();
                             } else {
                                 addLog(`Workflow failed: ${run.conclusion}`, 'error');
                                 document.getElementById('statusBadge').className = 'status-badge error';
                                 document.getElementById('statusBadge').innerHTML = '<i data-lucide="x-circle" style="width: 12px; height: 12px;"></i>Failed';
+                                document.getElementById('statusText').textContent = `Failed: ${run.conclusion}`;
                                 lucide.createIcons();
                             }
                             resetUI();
@@ -1138,7 +1170,7 @@
                 } catch (error) {
                     console.error('Polling error:', error);
                 }
-            }, 2000); // Poll every 2 seconds for logs
+            }, 2000); // Poll every 2 seconds
         }
 
         async function fetchResults(runId) {
