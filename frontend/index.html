@@ -932,19 +932,11 @@
                                             // Clean GitHub ANSI codes
                                             let cleanLine = line.replace(/\x1b\[\d+m/g, '').trim();
                                             
-                                            // Skip GitHub setup lines
-                                            if (cleanLine.includes('Getting action download') || 
-                                                cleanLine.includes('Download action') ||
-                                                cleanLine.includes('Setting up auth') ||
-                                                cleanLine.includes('Checking out') ||
-                                                cleanLine.includes('Run actions/')) {
-                                                return;
-                                            }
-                                            
                                             // Determine log type
                                             let logType = 'info';
                                             if (cleanLine.includes('SUCCESS') || cleanLine.includes('✓') || 
-                                                cleanLine.includes('created successfully') || cleanLine.includes('Complete')) {
+                                                cleanLine.includes('created successfully') || cleanLine.includes('Complete') ||
+                                                cleanLine.includes('Successfully installed')) {
                                                 logType = 'success';
                                             }
                                             if (cleanLine.includes('Failed') || cleanLine.includes('✗') || 
@@ -955,6 +947,7 @@
                                                 logType = 'warning';
                                             }
                                             
+                                            // Show ALL lines including GitHub setup
                                             if (cleanLine && cleanLine.length > 0) {
                                                 addLog(cleanLine, logType);
                                             }
