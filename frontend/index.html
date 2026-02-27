@@ -144,10 +144,6 @@
             transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .main-container.two-panel .control-panel {
-            transform: translateX(0);
-        }
-
         .logs-panel {
             opacity: 0;
             transform: translateX(40px);
@@ -800,6 +796,7 @@
         let currentRunId = null;
         let pollInterval = null;
         let isRunning = false;
+        let lastLogPosition = 0;
 
         // Initialize
         function init() {
@@ -870,6 +867,7 @@
 
         function clearLogs() {
             document.getElementById('logContent').innerHTML = '';
+            lastLogPosition = 0;
         }
 
         function downloadLogs() {
@@ -881,6 +879,70 @@
             a.download = `medo-logs-${new Date().toISOString()}.txt`;
             a.click();
             URL.revokeObjectURL(url);
+        }
+
+        // Fetch real GitHub Actions logs
+        async function fetchRealLogs(runId) {
+            if (!runId) return;
+            
+            try {
+                // Get jobs for this run
+                const jobsResponse = await fetch(
+                    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runs/${runId}/jobs`,
+                    {
+                        headers: {
+                            'Authorization': `token ${GITHUB_TOKEN}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                        }
+                    }
+                );
+                const jobs = await jobsResponse.json();
+                
+                if (jobs.jobs && jobs.jobs.length > 0) {
+                    const job = jobs.jobs[0];
+                    
+                    // Get job steps logs
+                    if (job.steps && job.steps.length > 0) {
+                        for (const step of job.steps) {
+                            if (step.name && step.name.includes('Run MeDo')) {
+                                // This is the step with our script output
+                                if (step.log && step.log.url) {
+                                    const logResponse = await fetch(step.log.url, {
+                                        headers: {
+                                            'Authorization': `token ${GITHUB_TOKEN}`,
+                                            'Accept': 'application/vnd.github.v3+json',
+                                        }
+                                    });
+                                    const logData = await logResponse.text();
+                                    
+                                    // Parse and display logs
+                                    const lines = logData.split('\n').filter(line => line.trim());
+                                    
+                                    // Only show new lines (not already displayed)
+                                    const newLines = lines.slice(lastLogPosition);
+                                    newLines.forEach(line => {
+                                        // Clean up GitHub log format
+                                        const cleanLine = line.replace(/^\[\d+m/g, '').replace(/\[\d+m/g, '');
+                                        if (cleanLine.trim() && !cleanLine.includes('Run python medo.py')) {
+                                            // Determine log type from content
+                                            let logType = 'info';
+                                            if (cleanLine.includes('SUCCESS') || cleanLine.includes('✓')) logType = 'success';
+                                            if (cleanLine.includes('Failed') || cleanLine.includes('✗') || cleanLine.includes('Error')) logType = 'error';
+                                            if (cleanLine.includes('Retry')) logType = 'warning';
+                                            
+                                            addLog(cleanLine, logType);
+                                        }
+                                    });
+                                    
+                                    lastLogPosition = lines.length;
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+            }
         }
 
         // Form submission
@@ -935,8 +997,12 @@
 
                 if (response.ok) {
                     addLog('Automation started successfully', 'success');
-                    document.getElementById('statusText').textContent = 'Workflow triggered. Monitoring...';
-                    pollForResults();
+                    document.getElementById('statusText').textContent = 'Workflow triggered. Fetching logs...';
+                    
+                    // Wait a few seconds for workflow to start, then fetch logs
+                    setTimeout(() => {
+                        pollForResults();
+                    }, 5000);
                 } else {
                     const error = await response.json();
                     throw new Error(error.message || 'Failed to start');
@@ -948,17 +1014,46 @@
             }
         });
 
-        function stopAutomation() {
-            if (pollInterval) {
-                clearInterval(pollInterval);
-                pollInterval = null;
+        // Stop automation - cancel the workflow run
+        async function stopAutomation() {
+            if (!currentRunId) {
+                addLog('No active run to stop', 'warning');
+                return;
             }
-            isRunning = false;
-            addLog('Automation stopped by user', 'warning');
-            document.getElementById('statusBadge').className = 'status-badge error';
-            document.getElementById('statusBadge').innerHTML = '<i data-lucide="square" style="width: 12px; height: 12px;"></i>Stopped';
-            lucide.createIcons();
-            resetUI();
+            
+            try {
+                addLog('Cancelling workflow...', 'warning');
+                
+                const response = await fetch(
+                    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runs/${currentRunId}/cancel`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `token ${GITHUB_TOKEN}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                        }
+                    }
+                );
+                
+                if (response.ok) {
+                    addLog('Workflow cancellation requested', 'success');
+                    document.getElementById('statusBadge').className = 'status-badge error';
+                    document.getElementById('statusBadge').innerHTML = '<i data-lucide="square" style="width: 12px; height: 12px;"></i>Stopped';
+                    lucide.createIcons();
+                    
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                    }
+                    isRunning = false;
+                    resetUI();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.message || 'Failed to cancel');
+                }
+            } catch (error) {
+                addLog(`Failed to stop: ${error.message}`, 'error');
+            }
         }
 
         function resetUI() {
@@ -967,13 +1062,19 @@
             document.getElementById('submitBtn').disabled = false;
         }
 
-        // Poll for results
+        // Poll for results and fetch logs
         async function pollForResults() {
             let attempts = 0;
             const maxAttempts = 180;
             
+            // Fetch logs immediately
+            await fetchRealLogs(currentRunId);
+            
             pollInterval = setInterval(async () => {
                 attempts++;
+                
+                // Fetch real logs from GitHub Actions
+                await fetchRealLogs(currentRunId);
                 
                 try {
                     const response = await fetch(
@@ -995,9 +1096,17 @@
                             clearInterval(pollInterval);
                             pollInterval = null;
                             
+                            // Fetch final logs
+                            await fetchRealLogs(run.id);
+                            
                             if (run.conclusion === 'success') {
                                 addLog('Workflow completed successfully', 'success');
                                 await fetchResults(run.id);
+                            } else if (run.conclusion === 'cancelled') {
+                                addLog('Workflow was cancelled', 'warning');
+                                document.getElementById('statusBadge').className = 'status-badge error';
+                                document.getElementById('statusBadge').innerHTML = '<i data-lucide="square" style="width: 12px; height: 12px;"></i>Cancelled';
+                                lucide.createIcons();
                             } else {
                                 addLog(`Workflow failed: ${run.conclusion}`, 'error');
                                 document.getElementById('statusBadge').className = 'status-badge error';
@@ -1012,7 +1121,7 @@
                 } catch (error) {
                     console.error('Polling error:', error);
                 }
-            }, 5000);
+            }, 3000); // Poll every 3 seconds for logs
         }
 
         async function fetchResults(runId) {
