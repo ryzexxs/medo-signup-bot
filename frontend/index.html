@@ -801,6 +801,7 @@
         let pollInterval = null;
         let isRunning = false;
         let fetchedLogUrls = new Set();
+        let fetchedJobIds = new Set();
 
         // Initialize
         function init() {
@@ -878,6 +879,7 @@
         function clearLogs() {
             document.getElementById('logContent').innerHTML = '';
             fetchedLogUrls.clear();
+            fetchedJobIds.clear();
         }
 
         function downloadLogs() {
@@ -920,68 +922,63 @@
                 
                 if (jobs.jobs && jobs.jobs.length > 0) {
                     for (const job of jobs.jobs) {
-                        console.log('Job:', job.name, 'Steps:', job.steps?.length || 0);
-                        
-                        if (job.steps && job.steps.length > 0) {
-                            for (const step of job.steps) {
-                                const logUrl = step.log?.url;
-                                
-                                if (logUrl) {
-                                    console.log('Step:', step.name, 'Log URL:', logUrl ? 'available' : 'none', 'Fetched:', fetchedLogUrls.has(logUrl));
-                                    
-                                    if (logUrl && !fetchedLogUrls.has(logUrl)) {
-                                        fetchedLogUrls.add(logUrl);
-                                        
-                                        const logResponse = await fetch(logUrl, {
-                                            headers: {
-                                                'Authorization': `token ${GITHUB_TOKEN}`,
-                                                'Accept': 'application/vnd.github.v3+json',
-                                            }
-                                        });
-                                        
-                                        if (!logResponse.ok) {
-                                            console.log('Log fetch failed:', logResponse.status);
-                                            continue;
-                                        }
-                                        
-                                        const logText = await logResponse.text();
-                                        console.log('Log text length:', logText.length);
-                                        
-                                        // Parse log lines
-                                        const lines = logText.split('\n').filter(line => line.trim());
-                                        console.log('Log lines:', lines.length);
-                                        
-                                        lines.forEach(line => {
-                                            // Clean GitHub ANSI codes
-                                            let cleanLine = line.replace(/\x1b\[\d+m/g, '').trim();
-                                            
-                                            // Skip empty or very short lines
-                                            if (cleanLine.length < 2) return;
-                                            
-                                            // Determine log type
-                                            let logType = 'info';
-                                            if (cleanLine.includes('SUCCESS') || cleanLine.includes('✓') || 
-                                                cleanLine.includes('created successfully') || cleanLine.includes('Complete') ||
-                                                cleanLine.includes('Successfully installed') || cleanLine.includes('succeeded') ||
-                                                cleanLine.includes('Complete!')) {
-                                                logType = 'success';
-                                            }
-                                            if (cleanLine.includes('Failed') || cleanLine.includes('✗') || 
-                                                cleanLine.includes('Error') || cleanLine.includes('Exception') ||
-                                                cleanLine.includes('fatal:') || cleanLine.includes('ERROR')) {
-                                                logType = 'error';
-                                            }
-                                            if (cleanLine.includes('Retry') || cleanLine.includes('Warning') ||
-                                                cleanLine.includes('warning:') || cleanLine.includes('WARNING')) {
-                                                logType = 'warning';
-                                            }
-                                            
-                                            addLog(cleanLine, logType);
-                                        });
-                                    }
-                                }
-                            }
+                        // Fetch logs per JOB (not per step)
+                        if (fetchedJobIds.has(job.id)) {
+                            continue; // Already fetched logs for this job
                         }
+                        
+                        fetchedJobIds.add(job.id);
+                        console.log('Fetching logs for job:', job.name, job.id);
+                        
+                        // Construct log URL for the job
+                        const logUrl = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/jobs/${job.id}/logs`;
+                        
+                        const logResponse = await fetch(logUrl, {
+                            headers: {
+                                'Authorization': `token ${GITHUB_TOKEN}`,
+                                'Accept': 'application/vnd.github.v3+json',
+                            }
+                        });
+                        
+                        if (!logResponse.ok) {
+                            console.log('Log fetch failed:', logResponse.status);
+                            continue;
+                        }
+                        
+                        const logText = await logResponse.text();
+                        console.log('Log text length:', logText.length);
+                        
+                        // Parse log lines
+                        const lines = logText.split('\n').filter(line => line.trim());
+                        console.log('Log lines:', lines.length);
+                        
+                        lines.forEach(line => {
+                            // Clean GitHub ANSI codes
+                            let cleanLine = line.replace(/\x1b\[\d+m/g, '').trim();
+                            
+                            // Skip empty or very short lines
+                            if (cleanLine.length < 2) return;
+                            
+                            // Determine log type
+                            let logType = 'info';
+                            if (cleanLine.includes('SUCCESS') || cleanLine.includes('✓') || 
+                                cleanLine.includes('created successfully') || cleanLine.includes('Complete') ||
+                                cleanLine.includes('Successfully installed') || cleanLine.includes('succeeded') ||
+                                cleanLine.includes('Complete!')) {
+                                logType = 'success';
+                            }
+                            if (cleanLine.includes('Failed') || cleanLine.includes('✗') || 
+                                cleanLine.includes('Error') || cleanLine.includes('Exception') ||
+                                cleanLine.includes('fatal:') || cleanLine.includes('ERROR')) {
+                                logType = 'error';
+                            }
+                            if (cleanLine.includes('Retry') || cleanLine.includes('Warning') ||
+                                cleanLine.includes('warning:') || cleanLine.includes('WARNING')) {
+                                logType = 'warning';
+                            }
+                            
+                            addLog(cleanLine, logType);
+                        });
                     }
                 }
             } catch (error) {
@@ -1046,7 +1043,7 @@
                     // Wait for workflow to actually start and generate logs
                     setTimeout(() => {
                         pollForResults();
-                    }, 10000); // Wait 10 seconds for first logs to be available
+                    }, 6000); // Wait 6 seconds for first logs to be available
                 } else {
                     const error = await response.json();
                     throw new Error(error.message || 'Failed to start');
