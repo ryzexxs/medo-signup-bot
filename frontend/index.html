@@ -922,6 +922,12 @@
                 
                 if (jobs.jobs && jobs.jobs.length > 0) {
                     for (const job of jobs.jobs) {
+                        // Only fetch logs for completed jobs
+                        if (job.status !== 'completed') {
+                            console.log('Job not completed yet:', job.status);
+                            continue;
+                        }
+                        
                         // Fetch logs per JOB (not per step)
                         if (fetchedJobIds.has(job.id)) {
                             continue; // Already fetched logs for this job
@@ -941,7 +947,7 @@
                         });
                         
                         if (!logResponse.ok) {
-                            console.log('Log fetch failed:', logResponse.status);
+                            console.log('Log fetch failed:', logResponse.status, '- logs may not be available yet');
                             continue;
                         }
                         
@@ -1108,14 +1114,8 @@
             let attempts = 0;
             const maxAttempts = 300; // 10 minutes at 2s intervals
             
-            // Fetch logs immediately
-            await fetchRealLogs(currentRunId);
-            
             pollInterval = setInterval(async () => {
                 attempts++;
-                
-                // Fetch real logs from GitHub Actions every poll
-                await fetchRealLogs(currentRunId);
                 
                 try {
                     const response = await fetch(
@@ -1133,16 +1133,36 @@
                         const run = data.workflow_runs[0];
                         currentRunId = run.id;
                         
-                        // Update status text with run info
-                        if (run.status === 'in_progress') {
-                            document.getElementById('statusText').textContent = `Workflow running... (${Math.round(run.elapsed_time || 0)}s)`;
+                        // Update status text with run info in real-time
+                        if (run.status === 'queued') {
+                            document.getElementById('statusText').textContent = `Queued... (position ${run.run_number})`;
+                        } else if (run.status === 'in_progress') {
+                            const elapsed = Math.round((Date.now() - new Date(run.created_at).getTime()) / 1000);
+                            document.getElementById('statusText').textContent = `Running... ${elapsed}s elapsed`;
+                            
+                            // Show current step based on jobs
+                            const jobsResponse = await fetch(
+                                `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runs/${run.id}/jobs?per_page=5`,
+                                {
+                                    headers: {
+                                        'Authorization': `token ${GITHUB_TOKEN}`,
+                                    }
+                                }
+                            );
+                            const jobs = await jobsResponse.json();
+                            if (jobs.jobs && jobs.jobs.length > 0) {
+                                const currentJob = jobs.jobs.find(j => j.status === 'in_progress') || jobs.jobs[jobs.jobs.length - 1];
+                                if (currentJob) {
+                                    addLog(`Current step: ${currentJob.name} (${currentJob.status})`, 'info');
+                                }
+                            }
                         }
                         
                         if (run.status === 'completed') {
                             clearInterval(pollInterval);
                             pollInterval = null;
                             
-                            // Final log fetch
+                            // Fetch logs now that job is complete
                             await fetchRealLogs(run.id);
                             
                             if (run.conclusion === 'success') {
