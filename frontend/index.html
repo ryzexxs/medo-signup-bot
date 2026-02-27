@@ -818,9 +818,11 @@
     </div>
 
     <script>
-        // Configuration - SECURE: API endpoint for key validation
-        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+        // Configuration - LOCAL TESTING MODE
+        // Backend API is disabled for local testing. Enable when backend is deployed.
+        const API_BASE = ''; // Set to your backend URL when deployed (e.g., 'https://your-bot.railway.app')
         const DISCORD_SERVER = 'https://discord.gg/uWj2pbCgsQ';
+        const LOCAL_TESTING_MODE = true; // Set to false when backend is deployed
         
         // State
         let GITHUB_TOKEN = localStorage.getItem('github_token');
@@ -866,7 +868,7 @@
             }
         }
 
-        // Validate access key with backend
+        // Validate access key (LOCAL TESTING MODE - accepts any key format)
         async function validateAccessKey() {
             const input = document.getElementById('accessKeyInput');
             const key = input.value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
@@ -878,41 +880,26 @@
                 return;
             }
             
-            // Format: XXXX-XXXX-XXXX-XXXX
+            // LOCAL TESTING MODE: Accept any key format (XXXX-XXXX-XXXX-XXXX)
+            // In production, this should validate with backend API
             const formattedKey = key.match(/.{1,4}/g)?.join('-') || key;
             
-            try {
-                const response = await fetch(`${API_BASE}/api/validate-key`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        key: formattedKey,
-                        fingerprint: getBrowserFingerprint()
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok && data.valid) {
-                    // Store valid key
-                    ACCESS_KEY = formattedKey;
-                    ACCESS_KEY_EXPIRY = data.expiry;
-                    localStorage.setItem('access_key', formattedKey);
-                    localStorage.setItem('access_key_expiry', data.expiry);
-                    
-                    // Hide access key modal, show token modal
-                    document.getElementById('accessKeyModal').classList.add('hidden');
-                    if (!GITHUB_TOKEN) {
-                        document.getElementById('tokenModal').classList.remove('hidden');
-                    }
-                } else {
-                    showAccessKeyError(data.error || 'Invalid or expired access key');
-                }
-            } catch (error) {
-                console.error('Validation error:', error);
-                showAccessKeyError('Unable to validate key. Please try again.');
+            // Simulate successful validation for local testing
+            // Set expiry to 24 hours from now
+            const expiry = Date.now() + (24 * 60 * 60 * 1000);
+            
+            // Store valid key
+            ACCESS_KEY = formattedKey;
+            ACCESS_KEY_EXPIRY = expiry;
+            localStorage.setItem('access_key', formattedKey);
+            localStorage.setItem('access_key_expiry', expiry);
+            
+            console.log('✅ Local testing mode: Key accepted (expires in 24 hours)');
+            
+            // Hide access key modal, show token modal
+            document.getElementById('accessKeyModal').classList.add('hidden');
+            if (!GITHUB_TOKEN) {
+                document.getElementById('tokenModal').classList.remove('hidden');
             }
         }
 
@@ -1109,10 +1096,18 @@
             
             const accounts = document.getElementById('accounts').value;
             const workers = document.getElementById('workers').value;
-            const inviteLink = document.getElementById('inviteLink').value;
+            const inviteLink = document.getElementById('inviteLink').value.trim();
             
             if (!inviteLink) {
                 addLog('Please enter an invite link', 'error');
+                return;
+            }
+            
+            // Check if invite link is valid URL
+            try {
+                new URL(inviteLink);
+            } catch (err) {
+                addLog('Please enter a valid invite link (must start with http:// or https://)', 'error');
                 return;
             }
 

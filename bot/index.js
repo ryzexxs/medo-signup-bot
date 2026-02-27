@@ -8,8 +8,9 @@ const cors = require('cors');
 
 // Authorized user IDs (qvfear and specified admins)
 const AUTHORIZED_USERS = [
-    '1033929243215806594',
-    '1326206060020629577'
+    '1033929243215806594',  // qvfear
+    '1326206060020629577',  // Admin 2
+    '1448880817601253376'   // Admin 3
 ];
 
 // Data file paths
