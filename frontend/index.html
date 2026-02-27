@@ -123,27 +123,25 @@
 
         /* Layout containers */
         .main-container {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             width: 100%;
             max-width: 1200px;
             height: 100vh;
             padding: 24px;
             transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-            place-items: center;
         }
 
         .main-container.two-panel {
+            display: grid;
             grid-template-columns: 400px 1fr;
             gap: 20px;
-            place-items: stretch;
+            align-items: stretch;
         }
 
         .control-panel {
             transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-            align-self: center;
-            justify-self: center;
         }
 
         .logs-panel {
