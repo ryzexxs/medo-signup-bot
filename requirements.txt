@@ -1,0 +1,4 @@
+selenium
+rich
+webdriver-manager
+selenium-stealth

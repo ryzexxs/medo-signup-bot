@@ -1,0 +1,62 @@
+name: MeDo Automation
+
+on:
+  # Manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      accounts:
+        description: 'Number of accounts to create'
+        required: true
+        default: '10'
+      workers:
+        description: 'Parallel workers (1-5)'
+        required: true
+        default: '3'
+      invite_link:
+        description: 'MeDo invite link'
+        required: true
+        default: 'https://medo.dev/?invitecode=user-xxxxx'
+
+jobs:
+  automate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install Chrome
+        run: |
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get install -fy
+          rm google-chrome-stable_current_amd64.deb
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      
+      - name: Run MeDo Automation
+        env:
+          INVITE_LINK: ${{ inputs.invite_link }}
+          TOTAL_ACCOUNTS: ${{ inputs.accounts }}
+          WORKERS: ${{ inputs.workers }}
+        run: |
+          python medo.py -t $TOTAL_ACCOUNTS -w $WORKERS -l "$INVITE_LINK"
+      
+      - name: Show Results
+        run: |
+          echo ""
+          echo "=========================================="
+          echo "✅ MeDo Automation Complete!"
+          echo "=========================================="
+          echo ""
+          echo "📊 Accounts created:"
+          cat accounts.txt 2>/dev/null || echo "No accounts file found"
+          echo ""
+          echo "=========================================="
