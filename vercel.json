@@ -1,0 +1,12 @@
+{
+  "buildCommand": "echo 'No build needed'",
+  "outputDirectory": "frontend",
+  "devCommand": "echo 'Static site'",
+  "installCommand": "echo 'No dependencies'",
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}

@@ -2,7 +2,31 @@
 
 Automated account creation tool for MeDo.dev
 
-## ⚡ Quick Start
+## 🌐 Web Interface (Vercel)
+
+**Live Demo**: Deploy to Vercel for a beautiful web UI!
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/ryzexxs/medo-signup-bot)
+
+### Setup Web UI:
+
+1. **Get GitHub Token**: https://github.com/settings/tokens
+   - Select scopes: `repo`, `workflow`
+   - Copy the token
+
+2. **Deploy to Vercel**:
+   ```bash
+   vercel deploy
+   ```
+
+3. **Add Environment Variable** in Vercel dashboard:
+   - `NEXT_PUBLIC_GITHUB_TOKEN` = your token
+
+4. **Visit your Vercel URL** and start automating! 🚀
+
+---
+
+## ⚡ Quick Start (GitHub Actions)
 
 ### Run via GitHub Actions
 
@@ -21,6 +45,8 @@ Automated account creation tool for MeDo.dev
 - `medo.py` - Main automation script
 - `requirements.txt` - Python dependencies
 - `.github/workflows/medo-automation.yml` - GitHub Actions workflow
+- `frontend/index.html` - Web UI (for Vercel)
+- `vercel.json` - Vercel configuration
 
 ## 🖥 Local Usage
 
@@ -50,6 +76,16 @@ python medo.py -t 10 -w 3 -l "https://medo.dev/?invitecode=user-xxxxx"
 - **Max job duration**: 6 hours
 - **Time per account**: ~50 seconds
 - **Accounts per month**: ~2500 (with 10 accounts/run)
+
+## 🎨 Features
+
+- ✅ Beautiful web UI (Vercel)
+- ✅ Manual trigger via GitHub Actions
+- ✅ Scheduled automation (optional)
+- ✅ Real-time logs
+- ✅ Copy results with one click
+- ✅ Discord notifications (optional)
+- ✅ 100% free to run
 
 ## ⚠️ Disclaimer
 

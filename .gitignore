@@ -22,3 +22,6 @@ accounts.txt
 # OS
 .DS_Store
 Thumbs.db
+
+# Vercel
+.vercel
