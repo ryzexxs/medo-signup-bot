@@ -41,7 +41,7 @@
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
-        /* Ambient background */
+        /* Ambient background - simplified for performance */
         .ambient-light {
             position: fixed;
             inset: 0;
@@ -53,47 +53,37 @@
         .ambient-glow {
             position: absolute;
             border-radius: 50%;
-            filter: blur(120px);
-            opacity: 0.04;
-            animation: ambientFloat 35s infinite ease-in-out;
+            filter: blur(80px);
+            opacity: 0.03;
         }
 
         .glow-1 {
-            width: 700px;
-            height: 700px;
-            background: #ffffff;
-            top: -300px;
-            right: -300px;
-        }
-
-        .glow-2 {
             width: 500px;
             height: 500px;
             background: #ffffff;
-            bottom: -200px;
-            left: -200px;
-            animation-delay: -17s;
+            top: -200px;
+            right: -200px;
         }
 
-        @keyframes ambientFloat {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(60px, 40px) scale(1.08); }
-            66% { transform: translate(-40px, 70px) scale(0.92); }
+        .glow-2 {
+            width: 400px;
+            height: 400px;
+            background: #ffffff;
+            bottom: -150px;
+            left: -150px;
         }
 
-        /* Glass panel */
+        /* Glass panel - optimized */
         .glass-panel {
             background: linear-gradient(
                 135deg,
-                rgba(10, 10, 10, 0.75) 0%,
-                rgba(5, 5, 5, 0.85) 100%
+                rgba(10, 10, 10, 0.85) 0%,
+                rgba(5, 5, 5, 0.92) 100%
             );
-            backdrop-filter: blur(32px);
-            -webkit-backdrop-filter: blur(32px);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--border-subtle);
-            box-shadow: 
-                0 1px 0 rgba(255, 255, 255, 0.05) inset,
-                0 24px 48px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
             border-radius: 24px;
         }
 
@@ -141,13 +131,13 @@
         }
 
         .control-panel {
-            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.4s ease-out;
         }
 
         .logs-panel {
             opacity: 0;
-            transform: translateX(40px);
-            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translateX(30px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
             pointer-events: none;
         }
 
@@ -921,49 +911,49 @@
                     for (const job of jobs.jobs) {
                         if (job.steps && job.steps.length > 0) {
                             for (const step of job.steps) {
-                                // Look for the "Run MeDo Automation" step
-                                if (step.name && step.name.includes('Run MeDo')) {
-                                    const logUrl = step.log?.url;
+                                // Fetch logs from ALL steps, not just "Run MeDo"
+                                const logUrl = step.log?.url;
+                                
+                                if (logUrl && !fetchedLogUrls.has(logUrl)) {
+                                    fetchedLogUrls.add(logUrl);
                                     
-                                    if (logUrl && !fetchedLogUrls.has(logUrl)) {
-                                        fetchedLogUrls.add(logUrl);
+                                    const logResponse = await fetch(logUrl, {
+                                        headers: {
+                                            'Authorization': `token ${GITHUB_TOKEN}`,
+                                            'Accept': 'application/vnd.github.v3+json',
+                                        }
+                                    });
+                                    const logText = await logResponse.text();
+                                    
+                                    // Parse log lines
+                                    const lines = logText.split('\n').filter(line => line.trim());
+                                    
+                                    lines.forEach(line => {
+                                        // Clean GitHub ANSI codes
+                                        let cleanLine = line.replace(/\x1b\[\d+m/g, '').trim();
                                         
-                                        const logResponse = await fetch(logUrl, {
-                                            headers: {
-                                                'Authorization': `token ${GITHUB_TOKEN}`,
-                                                'Accept': 'application/vnd.github.v3+json',
-                                            }
-                                        });
-                                        const logText = await logResponse.text();
+                                        // Determine log type
+                                        let logType = 'info';
+                                        if (cleanLine.includes('SUCCESS') || cleanLine.includes('✓') || 
+                                            cleanLine.includes('created successfully') || cleanLine.includes('Complete') ||
+                                            cleanLine.includes('Successfully installed') || cleanLine.includes('succeeded')) {
+                                            logType = 'success';
+                                        }
+                                        if (cleanLine.includes('Failed') || cleanLine.includes('✗') || 
+                                            cleanLine.includes('Error') || cleanLine.includes('Exception') ||
+                                            cleanLine.includes('fatal:')) {
+                                            logType = 'error';
+                                        }
+                                        if (cleanLine.includes('Retry') || cleanLine.includes('Warning') ||
+                                            cleanLine.includes('warning:')) {
+                                            logType = 'warning';
+                                        }
                                         
-                                        // Parse log lines
-                                        const lines = logText.split('\n').filter(line => line.trim());
-                                        
-                                        lines.forEach(line => {
-                                            // Clean GitHub ANSI codes
-                                            let cleanLine = line.replace(/\x1b\[\d+m/g, '').trim();
-                                            
-                                            // Determine log type
-                                            let logType = 'info';
-                                            if (cleanLine.includes('SUCCESS') || cleanLine.includes('✓') || 
-                                                cleanLine.includes('created successfully') || cleanLine.includes('Complete') ||
-                                                cleanLine.includes('Successfully installed')) {
-                                                logType = 'success';
-                                            }
-                                            if (cleanLine.includes('Failed') || cleanLine.includes('✗') || 
-                                                cleanLine.includes('Error') || cleanLine.includes('Exception')) {
-                                                logType = 'error';
-                                            }
-                                            if (cleanLine.includes('Retry') || cleanLine.includes('Warning')) {
-                                                logType = 'warning';
-                                            }
-                                            
-                                            // Show ALL lines including GitHub setup
-                                            if (cleanLine && cleanLine.length > 0) {
-                                                addLog(cleanLine, logType);
-                                            }
-                                        });
-                                    }
+                                        // Show ALL lines
+                                        if (cleanLine && cleanLine.length > 0) {
+                                            addLog(cleanLine, logType);
+                                        }
+                                    });
                                 }
                             }
                         }
@@ -1031,7 +1021,7 @@
                     // Wait for workflow to start, then poll
                     setTimeout(() => {
                         pollForResults();
-                    }, 8000);
+                    }, 5000);
                 } else {
                     const error = await response.json();
                     throw new Error(error.message || 'Failed to start');
@@ -1148,7 +1138,7 @@
                 } catch (error) {
                     console.error('Polling error:', error);
                 }
-            }, 3000);
+            }, 2000); // Poll every 2 seconds for logs
         }
 
         async function fetchResults(runId) {
